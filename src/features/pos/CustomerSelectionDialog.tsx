@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { db, type Customer } from "@/lib/db";
-import { Search, UserPlus, Check, User } from "lucide-react";
+import { Search, UserPlus, User } from "lucide-react";
 
 interface CustomerSelectionDialogProps {
   open: boolean;
@@ -23,6 +23,7 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
   const [foundCustomer, setFoundCustomer] = useState<Customer | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
+  console.log(isSearching)
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {

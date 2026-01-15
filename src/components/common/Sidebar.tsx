@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, Users, FileText, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, FileText, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 
