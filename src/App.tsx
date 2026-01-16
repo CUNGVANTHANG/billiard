@@ -8,6 +8,7 @@ import LoginPage from "@/features/auth/LoginPage";
 import TablesPage from "@/features/management/TablesPage";
 import OrdersPage from "@/features/orders/OrdersPage";
 import CustomersPage from "@/features/customers/CustomersPage";
+import SettingsPage from "@/features/settings/SettingsPage";
 import { useAuthStore } from "@/stores/authStore";
 import { useEffect } from "react";
 
@@ -45,7 +46,7 @@ export default function App() {
                     <Route path="dashboard" element={<DashboardPage />} />
                     <Route path="tables" element={<TablesPage />} />
                     <Route path="customers" element={<CustomersPage />} />
-                    <Route path="settings" element={<div className="p-4"><h1 className="text-2xl font-bold">Thiết lập</h1></div>} />
+                    <Route path="settings" element={<SettingsPage />} />
                 </Route>
                 {/* Shared or Staff allowed routes in Main Layout? Usually Staff just does POS. */}
                 <Route path="products" element={<ProductsPage />} />

@@ -9,9 +9,21 @@ interface AuthState {
     checkAuth: () => Promise<void>;
 }
 
+// Initialize state from local storage to avoid flicker/redirect on refresh
+const getInitialState = () => {
+    const session = localStorage.getItem('user_session');
+    if (session) {
+        try {
+            return { user: JSON.parse(session), isAuthenticated: true };
+        } catch (e) {
+            localStorage.removeItem('user_session');
+        }
+    }
+    return { user: null, isAuthenticated: false };
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
-    user: null,
-    isAuthenticated: false,
+    ...getInitialState(),
     login: (user) => {
         localStorage.setItem('user_session', JSON.stringify(user));
         set({ user, isAuthenticated: true });
@@ -21,6 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ user: null, isAuthenticated: false });
     },
     checkAuth: async () => {
+        // Fallback or re-verification if needed, but redundant with synchronous init for simple cases
         const session = localStorage.getItem('user_session');
         if (session) {
             try {

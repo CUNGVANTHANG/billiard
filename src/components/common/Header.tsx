@@ -19,7 +19,7 @@ const navItems = [
   { href: "/products", icon: Package, label: "Sản phẩm" },
   { href: "/orders", icon: FileText, label: "Đơn hàng" },
   { href: "/customers", icon: Users, label: "Khách hàng" },
-  { href: "/settings", icon: Settings, label: "Thiết lập" },
+  { href: "/settings", icon: Settings, label: "Cài đặt" },
 ];
 
 interface HeaderProps {

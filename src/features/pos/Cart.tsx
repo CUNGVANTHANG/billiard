@@ -3,6 +3,7 @@ import { Plus, Minus, PlayCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cartStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { PaymentDialog } from "./PaymentDialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
@@ -44,18 +45,41 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
       await startSession();
   };
 
-  // Calculate table rental fee (rounded up to nearest hour)
-  const pricePerHour = tableData?.table?.pricePerHour || 0;
-  const hoursUsed = Math.max(1, Math.ceil(elapsedMinutes / 60)); // Minimum 1 hour
-  const tableFee = isTableOccupied ? pricePerHour * hoursUsed : 0;
-  const productTotal = total();
-  const grandTotal = productTotal + tableFee;
-
   const formatTime = (mins: number) => {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
       return `${h}h ${m}p`;
   };
+
+  // Calculate table rental fee (rounded up to nearest hour)
+
+  const { billingBlockDuration, enableBlockBilling } = useSettingsStore();
+
+  // Calculate table rental fee
+  const pricePerHour = tableData?.table?.pricePerHour || 0;
+  let tableFee = 0;
+  let timeDisplay = "";
+
+  if (isTableOccupied) {
+      if (enableBlockBilling) {
+          // Block billing logic
+          const blocks = Math.max(1, Math.ceil(elapsedMinutes / billingBlockDuration));
+          const pricePerBlock = pricePerHour * (billingBlockDuration / 60);
+          tableFee = blocks * pricePerBlock;
+          timeDisplay = `${formatTime(elapsedMinutes)} (${blocks} block)`;
+      } else {
+          // Default hourly billing (minimum 1 hour as per previous code, or logical per hour)
+          // Preserving previous behavior: Math.ceil(elapsedMinutes / 60) -> Round up to next hour
+          const hoursUsed = Math.max(1, Math.ceil(elapsedMinutes / 60)); 
+          tableFee = pricePerHour * hoursUsed;
+          timeDisplay = `${formatTime(elapsedMinutes)} (${hoursUsed} giờ)`;
+      }
+  }
+
+  const productTotal = total();
+  const grandTotal = productTotal + tableFee;
+
+
 
   return (
     <div className="flex lg:w-[400px] w-full flex-col h-full bg-card border-l">
@@ -77,7 +101,7 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
                     <span className="font-bold text-primary">{tableFee.toLocaleString()}đ</span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                    {formatTime(elapsedMinutes)} × {pricePerHour.toLocaleString()}đ/giờ ({hoursUsed} giờ)
+                    {timeDisplay} × {pricePerHour.toLocaleString()}đ/giờ
                 </div>
             </div>
         )}
@@ -130,7 +154,7 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
           <div className="space-y-2">
             {isTableOccupied && (
                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tiền bàn ({hoursUsed}h)</span>
+                    <span className="text-muted-foreground">Tiền bàn</span>
                     <span>{tableFee.toLocaleString()}đ</span>
                 </div>
             )}

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingCart, Package, Users, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, FileText, LogOut, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -10,7 +10,7 @@ const navItems = [
   { href: "/products", icon: Package, label: "Quản lý sản phẩm" },
   { href: "/orders", icon: FileText, label: "Quản lý đơn hàng" },
   { href: "/customers", icon: Users, label: "Quản lý khách hàng" },
-  // { href: "/settings", icon: Settings, label: "Cài đặt" },
+  { href: "/settings", icon: Settings, label: "Cài đặt" },
 ];
 
 export function Sidebar() {

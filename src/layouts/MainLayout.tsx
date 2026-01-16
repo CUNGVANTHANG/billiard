@@ -8,7 +8,7 @@ const getTitle = (pathname: string) => {
   if (pathname.startsWith('/products')) return 'Quản lý sản phẩm';
   if (pathname.startsWith('/orders')) return 'Quản lý đơn hàng';
   if (pathname.startsWith('/customers')) return 'Khách hàng';
-  if (pathname.startsWith('/settings')) return 'Thiết lập';
+  if (pathname.startsWith('/settings')) return 'Cài đặt';
   return 'Tổng quan';
 };
 
