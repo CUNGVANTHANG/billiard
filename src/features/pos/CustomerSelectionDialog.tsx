@@ -17,7 +17,7 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
   const [name, setName] = useState("");
   const [foundCustomer, setFoundCustomer] = useState<Customer | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-
+  console.log(isSearching)
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
