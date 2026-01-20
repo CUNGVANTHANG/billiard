@@ -28,6 +28,7 @@ export interface Order {
     status: 'pending' | 'completed' | 'cancelled';
     tableId?: number;
     customerId?: number;
+    note?: string | string[]; // Backwards compatibility for string, transitioning to string[]
 }
 
 export interface Customer {

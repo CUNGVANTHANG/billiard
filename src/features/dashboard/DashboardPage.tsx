@@ -3,11 +3,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DollarSign, ShoppingBag, Users, Calendar } from 'lucide-react';
 
 export default function DashboardPage() {
+    const currentYear = new Date().getFullYear();
     const [period, setPeriod] = useState<'week' | 'month' | 'year'>('week');
+    const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
     const completedOrders = useLiveQuery(
         () => db.orders.where('status').equals('completed').toArray()
@@ -73,7 +76,7 @@ export default function DashboardPage() {
                      key = date.getDate().toString();
                 }
             } else if (period === 'year') {
-                if (date.getFullYear() === now.getFullYear()) {
+                if (date.getFullYear() === selectedYear) {
                     key = `T${date.getMonth() + 1}`;
                 }
             }
@@ -84,19 +87,39 @@ export default function DashboardPage() {
         });
 
         return labels.map(name => ({ name, value: data[name] || 0 }));
-    }, [completedOrders, period]);
+    }, [completedOrders, period, selectedYear]);
 
     return (
         <div className="flex flex-col gap-6 h-full overflow-y-auto pb-20">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Tổng quan</h1>
-                <Tabs value={period} onValueChange={(v) => setPeriod(v as any)} className="w-full sm:w-auto">
-                    <TabsList className="grid w-full grid-cols-3 sm:w-auto">
-                        <TabsTrigger value="week">Tuần này</TabsTrigger>
-                        <TabsTrigger value="month">Tháng này</TabsTrigger>
-                        <TabsTrigger value="year">Năm nay</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Tabs value={period} onValueChange={(v) => setPeriod(v as any)} className="w-auto">
+                        <TabsList>
+                            <TabsTrigger value="week">Tuần này</TabsTrigger>
+                            <TabsTrigger value="month">Tháng này</TabsTrigger>
+                            <TabsTrigger value="year">Năm nay</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    
+                    {/* Year Selector - inline with tabs */}
+                    <Select 
+                        value={selectedYear.toString()} 
+                        onValueChange={(v) => {
+                            setSelectedYear(Number(v));
+                            setPeriod('year');
+                        }}
+                    >
+                        <SelectTrigger className={`w-[90px] h-9 ${period === 'year' ? 'bg-background shadow-sm' : 'bg-muted/50'}`}>
+                            <SelectValue placeholder="Năm" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {Array.from({ length: currentYear - 2019 }, (_, i) => currentYear - i).map(year => (
+                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {/* Summary Cards */}

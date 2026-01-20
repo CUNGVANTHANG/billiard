@@ -1,16 +1,10 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { type Customer } from "@/lib/db";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 
 interface CustomerFormProps {
   open: boolean;
@@ -44,23 +38,23 @@ export function CustomerForm({ open, onOpenChange, customer, onSave }: CustomerF
         phone,
         points: customer?.points || 0
       });
+      toast.success(customer ? "Cập nhật khách hàng thành công" : "Thêm khách hàng thành công");
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to save customer:", error);
+      toast.error("Có lỗi xảy ra, vui lòng thử lại");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{customer ? "Sửa thông tin khách hàng" : "Thêm khách hàng mới"}</DialogTitle>
-          <DialogDescription>
-            Nhập thông tin chi tiết của khách hàng bên dưới.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal 
+        open={open} 
+        onOpenChange={onOpenChange}
+        title={customer ? "Sửa thông tin khách hàng" : "Thêm khách hàng mới"}
+        description="Nhập thông tin chi tiết của khách hàng bên dưới."
+    >
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -89,16 +83,15 @@ export function CustomerForm({ open, onOpenChange, customer, onSave }: CustomerF
               />
             </div>
           </div>
-          <DialogFooter>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Hủy
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? "Đang lưu..." : "Lưu"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }

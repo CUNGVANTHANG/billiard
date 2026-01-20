@@ -12,13 +12,43 @@ import {
     SheetContent,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { Users, UserMinus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Users, UserMinus, StickyNote, XCircle, Plus } from "lucide-react";
 import { CustomerSelectionDialog } from "./CustomerSelectionDialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 
 export default function POSPage() {
   const [view, setView] = useState<'tables' | 'order'>('tables');
-  const { setActiveTable, activeTableId, isTableOccupied, items, customerId, setCustomer } = useCartStore();
+  const { setActiveTable, activeTableId, isTableOccupied, items, customerId, setCustomer, notes, setNotes } = useCartStore();
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [isNoteOpen, setIsNoteOpen] = useState(false);
+  /* Logic for Editable Notes List */
+  const notesList = notes.length > 0 ? notes : [""];
+
+  const handleUpdateNote = (index: number, value: string) => {
+    // If we are updating the "ghost" empty note, initialize array
+    const newNotes = notes.length > 0 ? [...notes] : [""];
+    newNotes[index] = value;
+    // Filter out empty strings only if removing? No, keep them while editing. 
+    // Ideally we might want to filter before saving, but for UI stability keep them.
+    setNotes(newNotes);
+  };
+
+  const handleAddNoteField = () => {
+    const newNotes = notes.length > 0 ? [...notes] : [""];
+    setNotes([...newNotes, ""]);
+  };
+
+  const handleRemoveNote = (index: number) => {
+    if (notesList.length <= 1) {
+        // If it's the last one, just clear it (effectively empty list)
+        setNotes([]);
+        return;
+    }
+    const newNotes = [...notes];
+    newNotes.splice(index, 1);
+    setNotes(newNotes);
+  };
   
   const selectedCustomer = useLiveQuery(
       () => customerId ? db.customers.get(customerId) : undefined,
@@ -120,31 +150,108 @@ export default function POSPage() {
                     </div>
                 </div>
 
-                 {/* Customer Selection */}
-                 <div className="flex items-center gap-2">
-                    {selectedCustomer ? (
-                        <div className="flex items-center gap-2 bg-primary/10 pl-3 pr-1 py-1 rounded-full border border-primary/20">
-                            <div className="flex flex-col text-right gap-1 mr-1">
-                                <span className="text-xs font-bold text-primary leading-none">{selectedCustomer.name}</span>
-                                <span className="text-[10px] text-muted-foreground leading-none">{selectedCustomer.phone}</span>
+                {/* Actions Column */}
+                 <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-col border rounded-lg overflow-hidden bg-background shadow-sm min-w-[40px] sm:min-w-[130px]">
+                        {/* Customer Section (Top) */}
+                        {selectedCustomer ? (
+                            <div className="h-9 flex items-center justify-between gap-2 px-2 bg-primary/5 border-b w-full">
+                                <div className="flex flex-col leading-none overflow-hidden text-left max-w-[80px] sm:max-w-[100px]">
+                                     <span className="text-[10px] sm:text-xs font-bold text-primary truncate">{selectedCustomer.name}</span>
+                                     <span className="text-[9px] sm:text-[10px] text-muted-foreground truncate">{selectedCustomer.phone}</span>
+                                </div>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 -mr-1 text-muted-foreground hover:text-destructive rounded-full"
+                                    onClick={() => setCustomer(null)}
+                                    title="Bỏ chọn"
+                                >
+                                    <UserMinus className="h-3 w-3" />
+                                </Button>
                             </div>
+                        ) : (
                             <Button 
                                 variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 rounded-full hover:bg-destructive/10 hover:text-destructive scroll-m-2"
-                                onClick={() => setCustomer(null)}
-                                title="Bỏ chọn khách"
+                                size="sm" 
+                                onClick={() => setIsCustomerDialogOpen(true)} 
+                                className="h-9 w-full justify-start gap-2 rounded-none border-b font-normal px-2.5 hover:bg-muted/50"
                             >
-                                <UserMinus className="h-3 w-3" />
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span className="hidden sm:inline text-xs">Khách hàng</span>
                             </Button>
-                        </div>
-                    ) : (
-                        <Button variant="outline" size="sm" onClick={() => setIsCustomerDialogOpen(true)} className="gap-2 border-dashed">
-                            <Users className="h-4 w-4" />
-                            <span className="hidden sm:inline">Khách lẻ</span>
-                            <span className="sm:hidden">Khách</span>
-                        </Button>
-                    )}
+                        )}
+
+                        {/* Note Section (Bottom) */}
+                        <ResponsiveModal
+                            trigger={
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-9 w-full justify-start gap-2 rounded-none font-normal px-2.5 hover:bg-muted/50 relative"
+                                >
+                                     <StickyNote className="h-4 w-4 text-muted-foreground" />
+                                     <span className="hidden sm:inline text-xs">Ghi chú</span>
+                                     {notes.length > 0 && notes.some(n => n.trim() !== "") && (
+                                         <span className="absolute top-2 right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                                            {notes.filter(n => n.trim() !== "").length}
+                                         </span>
+                                     )}
+                                </Button>
+                            }
+                            open={isNoteOpen}
+                            onOpenChange={setIsNoteOpen}
+                            title="Ghi chú đơn hàng"
+                            description="Thêm ghi chú cho nhà bếp hoặc quầy thu ngân."
+                        >
+                            <div className="py-4 space-y-4">
+                                <div className="space-y-4 max-h-[60vh] overflow-y-auto overflow-x-hidden px-1">
+                                    {notesList.map((noteText, index) => (
+                                        <div key={index} className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-medium text-muted-foreground">
+                                                    Ghi chú {index + 1}:
+                                                </label>
+                                                {notesList.length > 1 && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 -mr-2"
+                                                        onClick={() => handleRemoveNote(index)}
+                                                    >
+                                                        Xóa
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <Textarea 
+                                                placeholder={`Nhập nội dung ghi chú ${index + 1}...`}
+                                                value={noteText}
+                                                onChange={(e) => handleUpdateNote(index, e.target.value)}
+                                                className="min-h-[80px]" 
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => setIsNoteOpen(false)}
+                                        className="flex-1"
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={handleAddNoteField} 
+                                        className="flex-[2] gap-2 border-dashed"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Thêm ghi chú {notesList.length + 1}
+                                    </Button>
+                                </div>
+                            </div>
+                        </ResponsiveModal>
+                    </div>
                  </div>
             </div>
         </div>
@@ -179,7 +286,7 @@ export default function POSPage() {
                       )}
                   </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[90vh] p-0">
+              <SheetContent side="bottom" className="h-[90vh] p-0 rounded-t-[20px] overflow-hidden">
                   <Cart onCheckoutSuccess={() => {
                       // Close sheet if open (optional, but good UX)
                        handleBackToTables();

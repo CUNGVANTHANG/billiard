@@ -18,8 +18,11 @@ interface CartState {
     setActiveTable: (tableId: number | null) => Promise<void>;
     saveCurrentOrder: () => Promise<void>;
     startSession: () => Promise<void>;
+    resetTable: () => Promise<void>;
     customerId: number | null;
+    notes: string[];
     setCustomer: (customerId: number | null) => void;
+    setNotes: (notes: string[]) => void;
     checkout: (amount: number) => Promise<void>;
 }
 
@@ -28,9 +31,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     activeTableId: null,
     isTableOccupied: false,
     customerId: null,
+    notes: [],
 
     setCustomer: (customerId) => {
         set({ customerId });
+        get().saveCurrentOrder();
+    },
+
+    setNotes: (notes) => {
+        set({ notes });
         get().saveCurrentOrder();
     },
 
@@ -69,7 +78,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     },
 
     clearCart: () => {
-        set({ items: [] });
+        set({ items: [], notes: [] });
         get().saveCurrentOrder();
     },
 
@@ -78,9 +87,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     },
 
     setActiveTable: async (tableId) => {
-        // 1. Save current table's order if exists (handled by auto-save actions mostly, but ensure we don't lose anything before switching? Auto-save covers it)
-
-        set({ activeTableId: tableId });
+        set({ activeTableId: tableId, notes: [] });
 
         if (tableId) {
             // 2. Load pending order for this table
@@ -88,26 +95,26 @@ export const useCartStore = create<CartState>((set, get) => ({
             if (table && table.currentOrderId) {
                 const order = await db.orders.get(table.currentOrderId);
                 if (order && order.status === 'pending') {
-                    // Map db items back to cart items (assuming minimal data needed)
                     const cartItems: CartItem[] = order.items.map(i => ({
                         id: i.productId,
                         name: i.name,
                         price: i.price,
                         quantity: i.quantity,
-                        barcode: '', // These fields might be missing in simplified order items, need care. 
+                        barcode: '',
                         costPrice: 0,
                         stock: 0,
                         category: ''
                     }));
-                    // Ideally we fetch full product details to replenish stock info etc, but for now simple:
-                    set({ items: cartItems, isTableOccupied: true, customerId: order.customerId || null });
+                    // Handle legacy string note or new array notes
+                    const notes = Array.isArray(order.note) ? order.note : (order.note ? [order.note] : []);
+                    set({ items: cartItems, isTableOccupied: true, customerId: order.customerId || null, notes });
                     return;
                 }
             }
             // If no pending order or table empty
-            set({ items: [], isTableOccupied: table?.status === 'occupied', customerId: null });
+            set({ items: [], isTableOccupied: table?.status === 'occupied', customerId: null, notes: [] });
         } else {
-            set({ items: [], isTableOccupied: false, customerId: null });
+            set({ items: [], isTableOccupied: false, customerId: null, notes: [] });
         }
     },
 
@@ -127,12 +134,13 @@ export const useCartStore = create<CartState>((set, get) => ({
                 price: i.price,
                 name: i.name
             })),
-            customerId: get().customerId || undefined
+            customerId: get().customerId || undefined,
+            note: get().notes
         });
     },
 
     startSession: async () => {
-        const { activeTableId, items, total } = get();
+        const { activeTableId, items, total, notes } = get();
         if (!activeTableId) return;
 
         const table = await db.billiardTables.get(activeTableId);
@@ -149,7 +157,8 @@ export const useCartStore = create<CartState>((set, get) => ({
             })),
             status: 'pending',
             tableId: activeTableId,
-            customerId: get().customerId || undefined
+            customerId: get().customerId || undefined,
+            note: notes
         };
 
         const orderId = await db.orders.add(orderData);
@@ -161,8 +170,30 @@ export const useCartStore = create<CartState>((set, get) => ({
         set({ isTableOccupied: true });
     },
 
+    resetTable: async () => {
+        const { activeTableId } = get();
+        if (!activeTableId) return;
+
+        const table = await db.billiardTables.get(activeTableId);
+        if (!table) return;
+
+        // Delete the pending order if exists
+        if (table.currentOrderId) {
+            await db.orders.delete(table.currentOrderId);
+        }
+
+        // Reset table to available
+        await db.billiardTables.update(activeTableId, {
+            status: 'available',
+            currentOrderId: undefined
+        });
+
+        // Clear local state
+        set({ items: [], isTableOccupied: false, activeTableId: null, customerId: null, notes: [] });
+    },
+
     checkout: async (amount: number) => {
-        const { activeTableId, items, customerId } = get();
+        const { activeTableId, items, customerId, notes } = get();
         if (!activeTableId) return;
 
         const table = await db.billiardTables.get(activeTableId);
@@ -179,7 +210,8 @@ export const useCartStore = create<CartState>((set, get) => ({
                 name: i.name
             })),
             paymentMethod: 'cash',
-            customerId: customerId || undefined
+            customerId: customerId || undefined,
+            note: notes
         });
 
         // Update Customer Points (1000VND = 1 point, example)
@@ -200,7 +232,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         });
 
         // Clear local cart
-        set({ items: [], activeTableId: null, customerId: null });
+        set({ items: [], activeTableId: null, customerId: null, notes: [] });
     }
 
 }));

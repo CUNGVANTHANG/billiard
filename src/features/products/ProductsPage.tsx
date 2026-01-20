@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Search, Plus, Trash2, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,8 +56,13 @@ export default function ProductsPage() {
 
   const handleDelete = async () => {
       if (deletingProduct?.id) {
-          await db.products.delete(deletingProduct.id);
-          setDeletingProduct(null);
+          try {
+              await db.products.delete(deletingProduct.id);
+              toast.success("Xóa sản phẩm thành công");
+              setDeletingProduct(null);
+          } catch (error) {
+              toast.error("Có lỗi xảy ra khi xóa sản phẩm");
+          }
       }
   };
 

@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Upload } from "lucide-react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,10 +56,31 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     }
   }, [product, reset, open]);
 
-  const onSubmit = (data: Product) => {
-      onSave({ ...data, id: product?.id });
-      onOpenChange(false);
+  /* ... inside ProductForm function ... */
+  const [isLoading, setIsLoading] = useState(false);
+
+  /* ... */
+
+  const onSubmit = async (data: Product) => {
+      setIsLoading(true);
+      try {
+          await onSave({ ...data, id: product?.id });
+          toast.success(product ? "Cập nhật sản phẩm thành công" : "Thêm sản phẩm thành công");
+          onOpenChange(false);
+      } catch (error) {
+          toast.error("Có lỗi xảy ra, vui lòng thử lại");
+      } finally {
+          setIsLoading(false);
+      }
   };
+
+  /* ... in DialogFooter ... */
+        <DialogFooter>
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isLoading}>Hủy</Button>
+          <Button type="submit" onClick={handleSubmit(onSubmit)} disabled={isLoading}>
+              {isLoading ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </DialogFooter>
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,9 +146,50 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
               {...register("stock", { valueAsNumber: true })}
             />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+             <Label htmlFor="image" className="text-right">
+                Hình ảnh
+             </Label>
+             <div className="col-span-3 relative">
+                <Input
+                  id="image"
+                  placeholder="Link ảnh hoặc upload..."
+                  className="pr-10"
+                  {...register("image")}
+                />
+                <input 
+                   type="file" 
+                   accept="image/*" 
+                   className="hidden" 
+                   id="image-upload"
+                   onChange={(e) => {
+                       const file = e.target.files?.[0];
+                       if (file) {
+                           const reader = new FileReader();
+                           reader.onloadend = () => {
+                               setValue("image", reader.result as string);
+                           };
+                           reader.readAsDataURL(file);
+                       }
+                   }}
+                />
+                <Button
+                   type="button"
+                   variant="ghost"
+                   size="icon"
+                   className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                   onClick={() => document.getElementById('image-upload')?.click()}
+                >
+                    <Upload className="h-4 w-4" />
+                </Button>
+             </div>
+          </div>
         </form>
         <DialogFooter>
-          <Button type="submit" onClick={handleSubmit(onSubmit)}>Lưu</Button>
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isLoading}>Hủy</Button>
+          <Button type="submit" onClick={handleSubmit(onSubmit)} disabled={isLoading}>
+              {isLoading ? "Đang lưu..." : "Lưu"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,10 +1,11 @@
 import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { BilliardTable } from "@/lib/db";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 
 interface TableFormProps {
     open: boolean;
@@ -31,23 +32,31 @@ export function TableFormDialog({ open, onOpenChange, table, onSave }: TableForm
         }
     }, [open, table, reset, setValue]);
 
+    const [isLoading, setIsLoading] = useState(false);
+
     const onSubmit = async (data: BilliardTable) => {
-        await onSave({
-            ...data,
-            pricePerHour: Number(data.pricePerHour)
-        });
-        onOpenChange(false);
+        setIsLoading(true);
+        try {
+            await onSave({
+                ...data,
+                pricePerHour: Number(data.pricePerHour)
+            });
+            toast.success(table ? "Cập nhật bàn thành công" : "Thêm bàn mới thành công");
+            onOpenChange(false);
+        } catch (error) {
+            toast.error("Có lỗi xảy ra, vui lòng thử lại");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{table ? "Cập nhật bàn" : "Thêm bàn mới"}</DialogTitle>
-                    <DialogDescription>
-                        Nhập thông tin bàn ở đây. Nhấn lưu khi hoàn tất.
-                    </DialogDescription>
-                </DialogHeader>
+        <ResponsiveModal 
+            open={open} 
+            onOpenChange={onOpenChange}
+            title={table ? "Cập nhật bàn" : "Thêm bàn mới"}
+            description="Nhập thông tin bàn ở đây. Nhấn lưu khi hoàn tất."
+        >
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -76,11 +85,13 @@ export function TableFormDialog({ open, onOpenChange, table, onSave }: TableForm
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button type="submit">Lưu thay đổi</Button>
-                    </DialogFooter>
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+                        <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isLoading}>Hủy</Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                        </Button>
+                    </div>
                 </form>
-            </DialogContent>
-        </Dialog>
+        </ResponsiveModal>
     );
 }

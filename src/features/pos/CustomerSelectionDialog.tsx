@@ -2,14 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { db, type Customer } from "@/lib/db";
 import { Search, UserPlus, User } from "lucide-react";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 
 interface CustomerSelectionDialogProps {
   open: boolean;
@@ -23,7 +18,6 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
   const [foundCustomer, setFoundCustomer] = useState<Customer | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
-  console.log(isSearching)
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
@@ -73,12 +67,12 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Chọn khách hàng</DialogTitle>
-        </DialogHeader>
-        
+    <ResponsiveModal 
+        open={open} 
+        onOpenChange={onOpenChange}
+        title="Chọn khách hàng"
+        description="Tìm kiếm khách hàng bằng số điện thoại hoặc tạo mới."
+    >
         <div className="space-y-6 py-4">
             {/* Phone Input Search */}
             <div className="space-y-2">
@@ -135,7 +129,6 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
                 </div>
             )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveModal>
   );
 }

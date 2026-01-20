@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Plus, Trash2, Edit, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,13 @@ export default function TablesPage() {
 
   const handleDelete = async () => {
       if (deletingTable?.id) {
-          await db.billiardTables.delete(deletingTable.id);
-          setDeletingTable(null);
+          try {
+              await db.billiardTables.delete(deletingTable.id);
+              toast.success("Xóa bàn thành công");
+              setDeletingTable(null);
+          } catch (error) {
+              toast.error("Có lỗi xảy ra khi xóa bàn");
+          }
       }
   };
 

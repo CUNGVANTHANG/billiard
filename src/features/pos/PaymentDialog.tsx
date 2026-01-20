@@ -1,37 +1,45 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCartStore } from "@/stores/cartStore";
 import { useState } from "react";
-import { Check, CreditCard, Banknote } from "lucide-react";
+import { toast } from "sonner";
+import { Check, CreditCard, Banknote, Loader2 } from "lucide-react";
 
 export function PaymentDialog({ total, onPaymentSuccess }: { total: number; onPaymentSuccess?: () => void }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [received, setReceived] = useState<string>(total.toString());
     const [method, setMethod] = useState<'cash'|'transfer'>('cash');
     const { checkout } = useCartStore();
     
     const handlePayment = async () => {
-        // Implement payment logic here (save order to DB)
-        console.log("Payment processed", { method, total, received });
-        await checkout(total);
-        setIsOpen(false);
-        onPaymentSuccess?.();
+        setIsLoading(true);
+        try {
+            await checkout(total);
+            toast.success("Thanh toán thành công!");
+            setIsOpen(false);
+            onPaymentSuccess?.();
+        } catch (error) {
+            toast.error("Thanh toán thất bại, vui lòng thử lại.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const change = Math.max(0, parseInt(received || "0") - total);
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button className="w-full" size="lg" disabled={total === 0}>
-                    Thanh toán {total.toLocaleString()}đ
+        <ResponsiveModal 
+            open={isOpen} 
+            onOpenChange={setIsOpen}
+            trigger={
+                <Button className="w-full text-lg" size="lg" disabled={total === 0}>
+                    Thanh toán
                 </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Chi tiết thanh toán</DialogTitle>
-                </DialogHeader>
+            }
+            title="Chi tiết thanh toán"
+        >
                 <div className="grid gap-4 py-4">
                     <div className="text-center">
                         <p className="text-sm text-muted-foreground">Tổng tiền</p>
@@ -84,11 +92,13 @@ export function PaymentDialog({ total, onPaymentSuccess }: { total: number; onPa
                         </>
                     )}
                 </div>
-                <Button onClick={handlePayment} size="lg" className="w-full gap-2">
-                     <Check className="h-4 w-4" />
-                     Thanh toán & Trả bàn
-                </Button>
-            </DialogContent>
-        </Dialog>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>Hủy</Button>
+                    <Button onClick={handlePayment} size="lg" className="gap-2" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        Thanh toán & Trả bàn
+                    </Button>
+                </div>
+        </ResponsiveModal>
     );
 }

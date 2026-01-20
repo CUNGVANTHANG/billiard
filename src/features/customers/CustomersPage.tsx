@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Search, Plus, Edit, Trash2, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,8 +61,13 @@ export default function CustomersPage() {
 
   const handleDelete = async () => {
     if (deletingCustomer?.id) {
-      await db.customers.delete(deletingCustomer.id);
-      setDeletingCustomer(null);
+      try {
+        await db.customers.delete(deletingCustomer.id);
+        toast.success("Xóa khách hàng thành công");
+        setDeletingCustomer(null);
+      } catch (error) {
+        toast.error("Có lỗi xảy ra khi xóa khách hàng");
+      }
     }
   };
 

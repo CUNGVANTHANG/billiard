@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { Button } from "@/components/ui/button";
 import { Save, Printer, GripVertical, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
@@ -120,6 +121,7 @@ export default function SettingsPage() {
         setHeaderLayout(localHeaderLayout);
         setPrintStyle(localPrintStyle);
         
+        toast.success("Lưu cài đặt thành công");
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };

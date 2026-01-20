@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Minus, PlayCircle, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { Plus, Minus, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cartStore";
@@ -7,9 +8,20 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { PaymentDialog } from "./PaymentDialog";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) {
-  const { items, removeFromCart, updateQuantity, total, isTableOccupied, startSession, activeTableId } = useCartStore();
+  const { items, removeFromCart, updateQuantity, total, isTableOccupied, startSession, activeTableId, clearCart, resetTable } = useCartStore();
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
   // Fetch table and order info
@@ -42,7 +54,12 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
   }, [tableData?.order?.date]);
 
   const handleStartSession = async () => {
-      await startSession();
+      try {
+          await startSession();
+          toast.success("Đã bắt đầu phiên bàn mới");
+      } catch (error) {
+          toast.error("Không thể bắt đầu phiên, vui lòng thử lại");
+      }
   };
 
   const formatTime = (mins: number) => {
@@ -114,16 +131,16 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
         ) : (
              <div className="space-y-4">
                 {items.map((item) => (
-                    <div key={item.id} className="flex gap-2 items-start group">
-                         <div className="flex-1 space-y-1">
-                             <p className="text-sm font-medium leading-none">{item.name}</p>
+                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center group py-1 border-b last:border-0 border-dashed">
+                         <div className="col-span-5 space-y-1">
+                             <p className="text-sm font-medium leading-tight line-clamp-2">{item.name}</p>
                              <p className="text-xs text-muted-foreground">{item.price.toLocaleString()}đ</p>
                          </div>
-                         <div className="flex items-center gap-2">
+                         <div className="col-span-4 flex items-center justify-center gap-1">
                              <Button 
                                 variant="outline" 
                                 size="icon" 
-                                className="h-6 w-6" 
+                                className="h-7 w-7 rounded-full" 
                                 onClick={() => {
                                     if (item.quantity > 1) updateQuantity(item.id!, item.quantity - 1);
                                     else removeFromCart(item.id!);
@@ -131,18 +148,18 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
                              >
                                  <Minus className="h-3 w-3" />
                              </Button>
-                             <span className="w-4 text-center text-sm">{item.quantity}</span>
+                             <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                              <Button 
                                 variant="outline" 
                                 size="icon" 
-                                className="h-6 w-6"
+                                className="h-7 w-7 rounded-full"
                                 onClick={() => updateQuantity(item.id!, item.quantity + 1)}
                              >
                                  <Plus className="h-3 w-3" />
                              </Button>
                          </div>
-                         <div className="text-sm font-bold w-16 text-right">
-                             {(item.price * item.quantity).toLocaleString()}
+                         <div className="col-span-3 text-sm font-bold text-right">
+                             {(item.price * item.quantity).toLocaleString()}đ
                          </div>
                     </div>
                 ))}
@@ -174,14 +191,48 @@ export function Cart({ onCheckoutSuccess }: { onCheckoutSuccess?: () => void }) 
           </div>
           
           {isTableOccupied ? (
-              <PaymentDialog total={grandTotal} onPaymentSuccess={onCheckoutSuccess} />
+              <div className="flex gap-2">
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="flex-1 h-12 text-lg gap-2" size="lg">
+                              Hủy
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận hủy thanh toán</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  Bạn có chắc muốn hủy đơn hàng này? Toàn bộ sản phẩm trong giỏ hàng sẽ bị xóa và bàn sẽ được trả lại trạng thái trống.
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Quay lại</AlertDialogCancel>
+                              <AlertDialogAction 
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={async () => {
+                                      try {
+                                          clearCart();
+                                          await resetTable();
+                                          toast.success("Đã hủy đơn hàng và trả bàn");
+                                          onCheckoutSuccess?.();
+                                      } catch (error) {
+                                          toast.error("Có lỗi xảy ra khi hủy đơn hàng");
+                                      }
+                                  }}
+                              >
+                                  Xác nhận hủy
+                              </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+                  <PaymentDialog total={grandTotal} onPaymentSuccess={onCheckoutSuccess} />
+              </div>
           ) : (
               <Button 
                   className="w-full h-12 text-lg gap-2" 
                   size="lg"
                   onClick={handleStartSession}
               >
-                  <PlayCircle className="h-5 w-5" />
                   Đặt bàn
               </Button>
           )}

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { Toaster } from "sonner";
 import MainLayout from "@/layouts/MainLayout";
 import POSLayout from "@/layouts/POSLayout";
 import DashboardPage from "@/features/dashboard/DashboardPage";
@@ -34,6 +35,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-center" richColors />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         
