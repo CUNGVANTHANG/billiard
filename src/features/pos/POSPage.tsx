@@ -13,7 +13,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, UserMinus, StickyNote, XCircle, Plus } from "lucide-react";
+import { Users, UserMinus, StickyNote, Plus } from "lucide-react";
 import { CustomerSelectionDialog } from "./CustomerSelectionDialog";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 
