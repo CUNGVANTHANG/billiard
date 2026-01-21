@@ -12,8 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type Customer } from "@/lib/db";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type Customer } from "@/types";
+import { customerService } from "@/services/customerService";
 import { CustomerForm } from "./CustomerForm";
 import {
   AlertDialog,
@@ -32,22 +33,42 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
-  const customers = useLiveQuery(
-    async () => {
-      let collection = db.customers.toCollection();
-      let result = await collection.toArray();
-      
-      if (searchTerm) {
-        const lowerSearch = searchTerm.toLowerCase();
-        result = result.filter(c => 
-          c.name.toLowerCase().includes(lowerSearch) || 
-          c.phone.includes(searchTerm)
-        );
-      }
-      return result.reverse(); // Newest first
+  const queryClient = useQueryClient();
+
+  const { data: allCustomers } = useQuery({
+    queryKey: ['customers'],
+    queryFn: customerService.getAll
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: customerService.delete,
+    onSuccess: () => {
+        toast.success("Xóa khách hàng thành công");
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
+        setDeletingCustomer(null);
     },
-    [searchTerm]
-  );
+    onError: () => toast.error("Có lỗi xảy ra khi xóa khách hàng")
+  });
+
+  const createMutation = useMutation({
+      mutationFn: customerService.create,
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+      }
+  });
+
+  const updateMutation = useMutation({
+      mutationFn: (data: {id: number, customer: Partial<Customer>}) => customerService.update(data.id, data.customer),
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+      }
+  });
+
+  const customers = allCustomers?.filter(c => {
+      if (!searchTerm) return true;
+      const lowerSearch = searchTerm.toLowerCase();
+      return c.name.toLowerCase().includes(lowerSearch) || c.phone.includes(searchTerm);
+  })?.reverse();
 
   const handleAdd = () => {
     setEditingCustomer(null);
@@ -61,21 +82,15 @@ export default function CustomersPage() {
 
   const handleDelete = async () => {
     if (deletingCustomer?.id) {
-      try {
-        await db.customers.delete(deletingCustomer.id);
-        toast.success("Xóa khách hàng thành công");
-        setDeletingCustomer(null);
-      } catch (error) {
-        toast.error("Có lỗi xảy ra khi xóa khách hàng");
-      }
+        deleteMutation.mutate(deletingCustomer.id);
     }
   };
 
   const handleSave = async (data: Customer) => {
     if (data.id) {
-      await db.customers.update(data.id, data);
+      await updateMutation.mutateAsync({ id: data.id, customer: data });
     } else {
-      await db.customers.add(data);
+      await createMutation.mutateAsync(data);
     }
   };
 

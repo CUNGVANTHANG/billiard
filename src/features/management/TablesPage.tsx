@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type BilliardTable } from "@/lib/db";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type BilliardTable } from "@/types";
+import { tableService } from "@/services/tableService";
 import { TableFormDialog } from "./TableFormDialog";
 import { cn } from "@/lib/utils";
 import {
@@ -36,7 +37,36 @@ export default function TablesPage() {
   const [deletingTable, setDeletingTable] = useState<BilliardTable | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const allTables = useLiveQuery(() => db.billiardTables.toArray());
+  const queryClient = useQueryClient();
+
+  const { data: allTables } = useQuery({
+      queryKey: ['tables'],
+      queryFn: tableService.getAll
+  });
+
+  const deleteMutation = useMutation({
+      mutationFn: tableService.delete,
+      onSuccess: () => {
+          toast.success("Xóa bàn thành công");
+          queryClient.invalidateQueries({ queryKey:['tables'] });
+          setDeletingTable(null);
+      },
+      onError: () => toast.error("Có lỗi xảy ra khi xóa bàn")
+  });
+
+  const createMutation = useMutation({
+      mutationFn: tableService.create,
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey:['tables'] });
+      }
+  });
+
+  const updateMutation = useMutation({
+      mutationFn: (data: {id: number, table: Partial<BilliardTable>}) => tableService.update(data.id, data.table),
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey:['tables'] });
+      }
+  });
 
   const tables = useMemo(() => {
     if (!allTables) return [];
@@ -59,21 +89,15 @@ export default function TablesPage() {
 
   const handleDelete = async () => {
       if (deletingTable?.id) {
-          try {
-              await db.billiardTables.delete(deletingTable.id);
-              toast.success("Xóa bàn thành công");
-              setDeletingTable(null);
-          } catch (error) {
-              toast.error("Có lỗi xảy ra khi xóa bàn");
-          }
+          deleteMutation.mutate(deletingTable.id);
       }
   };
 
   const handleSave = async (data: BilliardTable) => {
       if (data.id) {
-          await db.billiardTables.update(data.id, data);
+          await updateMutation.mutateAsync({ id: data.id, table: data });
       } else {
-          await db.billiardTables.add(data);
+          await createMutation.mutateAsync(data);
       }
   };
 

@@ -6,6 +6,8 @@ interface SettingsState {
     enableBlockBilling: boolean;
     setBillingBlockDuration: (duration: number) => void;
     setEnableBlockBilling: (enable: boolean) => void;
+    gracePeriod: number; // minutes
+    setGracePeriod: (minutes: number) => void;
     // Printer Settings
     shopName: string;
     shopAddress: string;
@@ -30,6 +32,8 @@ export const useSettingsStore = create<SettingsState>()(
             enableBlockBilling: false,
             setBillingBlockDuration: (duration) => set({ billingBlockDuration: duration }),
             setEnableBlockBilling: (enable) => set({ enableBlockBilling: enable }),
+            gracePeriod: 5,
+            setGracePeriod: (minutes) => set({ gracePeriod: minutes }),
 
             // Default Printer Settings
             shopName: 'POS365 Store',

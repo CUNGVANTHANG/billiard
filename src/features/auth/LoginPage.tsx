@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
-import { db } from "@/lib/db";
+import { authService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const user = await db.users.where({ username }).first();
+      const user = await authService.login(username);
 
       if (user && user.password === password) {
         login(user);

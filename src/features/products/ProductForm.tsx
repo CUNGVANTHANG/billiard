@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type Product } from "@/lib/db";
+import { type Product } from "@/types";
 
 interface ProductFormProps {
   open: boolean;

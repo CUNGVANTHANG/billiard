@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/db';
+import { useQuery } from '@tanstack/react-query';
+import { orderService } from '@/services/orderService';
+import { customerService } from '@/services/customerService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,11 +13,22 @@ export default function DashboardPage() {
     const [period, setPeriod] = useState<'week' | 'month' | 'year'>('week');
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
-    const completedOrders = useLiveQuery(
-        () => db.orders.where('status').equals('completed').toArray()
-    );
+    const { data: allOrders } = useQuery({
+        queryKey: ['orders'],
+        queryFn: orderService.getAll
+    });
 
-    const totalCustomers = useLiveQuery(() => db.customers.count());
+    const { data: allCustomers } = useQuery({
+        queryKey: ['customers'],
+        queryFn: customerService.getAll
+    });
+
+    // Client-side filtering as per original logic
+    const completedOrders = useMemo(() => {
+        return allOrders?.filter(o => o.status === 'completed') || [];
+    }, [allOrders]);
+
+    const totalCustomers = allCustomers?.length || 0;
 
     const stats = useMemo(() => {
         if (!completedOrders) return { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 };

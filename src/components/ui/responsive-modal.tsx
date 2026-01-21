@@ -17,6 +17,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
+import { cn } from "@/lib/utils"
+
 interface ResponsiveModalProps {
   children: React.ReactNode
   trigger?: React.ReactNode
@@ -24,6 +26,7 @@ interface ResponsiveModalProps {
   onOpenChange?: (open: boolean) => void
   title?: string
   description?: string
+  className?: string
 }
 
 export function ResponsiveModal({
@@ -33,6 +36,7 @@ export function ResponsiveModal({
   onOpenChange,
   title,
   description,
+  className
 }: ResponsiveModalProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -40,7 +44,7 @@ export function ResponsiveModal({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className={cn("sm:max-w-[425px]", className)}>
           <DialogHeader>
             {title && <DialogTitle>{title}</DialogTitle>}
             {description && <DialogDescription>{description}</DialogDescription>}
@@ -54,7 +58,7 @@ export function ResponsiveModal({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
-      <SheetContent side="bottom" className="p-0 rounded-t-[20px] overflow-hidden max-h-[90vh] min-h-[50vh] flex flex-col">
+      <SheetContent side="bottom" className={cn("p-0 rounded-t-[20px] overflow-hidden max-h-[90vh] min-h-[50vh] flex flex-col", className)}>
         <SheetHeader className="p-4 border-b text-left space-y-1">
           {title && <SheetTitle>{title}</SheetTitle>}
           {description && <SheetDescription>{description}</SheetDescription>}

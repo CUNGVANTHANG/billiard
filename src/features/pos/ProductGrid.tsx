@@ -4,29 +4,30 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import { useQuery } from "@tanstack/react-query";
+import { productService } from "@/services/productService";
 import { useCartStore } from "@/stores/cartStore";
 
 export function ProductGrid() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
-  const products = useLiveQuery(
-    async () => {
-        let collection = db.products.toCollection();
-        if (selectedCategory) {
-            collection = db.products.where('category').equals(selectedCategory);
-        }
-        let result = await collection.toArray();
-        if (searchTerm) {
-            const lowerString = searchTerm.toLowerCase();
-            result = result.filter(p => p.name.toLowerCase().includes(lowerString) || p.barcode.includes(searchTerm));
-        }
-        return result;
-    },
-    [searchTerm, selectedCategory]
-  );
+  const { data: allProducts } = useQuery({
+    queryKey: ['products'],
+    queryFn: productService.getAll
+  });
+
+  const products = allProducts?.filter(p => {
+      let match = true;
+      if (selectedCategory) {
+           match = p.category === selectedCategory;
+      }
+      if (searchTerm && match) {
+          const lowerString = searchTerm.toLowerCase();
+          match = p.name.toLowerCase().includes(lowerString) || p.barcode.includes(searchTerm);
+      }
+      return match;
+  });
 
   const addToCart = useCartStore(state => state.addToCart);
 

@@ -4,9 +4,12 @@ import { Cart } from "./Cart";
 import { TableGrid } from "./TableGrid";
 import { useCartStore } from "@/stores/cartStore";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Banknote, ShoppingCart } from "lucide-react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import { ArrowLeft, Clock, Banknote, ShoppingCart, Play, Pause } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+// import { db } from "@/lib/db"; // Removed
+import { customerService } from "@/services/customerService";
+import { tableService } from "@/services/tableService";
+import { orderService } from "@/services/orderService";
 import {
     Sheet,
     SheetContent,
@@ -16,9 +19,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Users, UserMinus, StickyNote, XCircle, Plus } from "lucide-react";
 import { CustomerSelectionDialog } from "./CustomerSelectionDialog";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function POSPage() {
   const [view, setView] = useState<'tables' | 'order'>('tables');
+  const [isPaused, setIsPaused] = useState(false); // UI State for Pause
   const { setActiveTable, activeTableId, isTableOccupied, items, customerId, setCustomer, notes, setNotes } = useCartStore();
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -50,20 +55,26 @@ export default function POSPage() {
     setNotes(newNotes);
   };
   
-  const selectedCustomer = useLiveQuery(
-      () => customerId ? db.customers.get(customerId) : undefined,
-      [customerId]
-  );
+  /* React Queires */
+  const { data: selectedCustomer } = useQuery({
+      queryKey: ['customer', customerId],
+      queryFn: () => customerService.getById(customerId!),
+      enabled: !!customerId
+  });
 
-  const activeTable = useLiveQuery(
-      () => activeTableId ? db.billiardTables.get(activeTableId) : undefined,
-      [activeTableId]
-  );
+  const { data: activeTable } = useQuery({
+      queryKey: ['table', activeTableId],
+      queryFn: () => tableService.getById(activeTableId!),
+      enabled: !!activeTableId,
+      refetchInterval: 5000 // Poll for status changes
+  });
 
-  const activeOrder = useLiveQuery(
-      () => activeTable?.currentOrderId ? db.orders.get(activeTable.currentOrderId) : undefined,
-      [activeTable?.currentOrderId]
-  );
+  const { data: activeOrder } = useQuery({
+      queryKey: ['order', activeTable?.currentOrderId],
+      queryFn: () => orderService.getById(activeTable!.currentOrderId!),
+      enabled: !!activeTable?.currentOrderId,
+      refetchInterval: 5000
+  });
 
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
@@ -141,10 +152,38 @@ export default function POSPage() {
                                 <span>{activeTable?.pricePerHour?.toLocaleString()}đ/h</span>
                             </div>
                             {isTableOccupied && (
-                                <div className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
-                                    <span className="font-medium text-foreground">{formatTime(elapsedMinutes)}</span>
-                                </div>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="sm" className={`h-auto py-0.5 px-2 font-normal hover:bg-muted gap-1 ${isPaused ? 'text-red-500' : ''}`}>
+                                            <Clock className={`h-3 w-3 sm:h-4 sm:w-4 ${isPaused ? 'text-red-500' : 'text-orange-500'}`} />
+                                            <span className="font-medium">{formatTime(elapsedMinutes)}</span>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent side="bottom" align="start" className="w-64 p-3">
+                                        <div className="space-y-3">
+                                            <h4 className="font-medium leading-none mb-1">Thời gian chơi</h4>
+                                            
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Thời gian vào:</span>
+                                                <span className="font-medium font-mono">
+                                                    {activeOrder?.date ? new Date(activeOrder.date).toLocaleString('en-GB', { 
+                                                        hour: '2-digit', minute: '2-digit',
+                                                        day: '2-digit', month: '2-digit', year: 'numeric'
+                                                    }) : '--:--'}
+                                                </span>
+                                            </div>
+
+                                            <Button 
+                                                variant={isPaused ? "default" : "secondary"} 
+                                                className="w-full h-8 gap-2"
+                                                onClick={() => setIsPaused(!isPaused)} 
+                                            >
+                                                {isPaused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                                                {isPaused ? "Tiếp tục tính giờ" : "Tạm dừng tính giờ"}
+                                            </Button>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                             )}
                         </div>
                     </div>

@@ -1,5 +1,6 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import { useQuery } from "@tanstack/react-query";
+import { tableService } from "@/services/tableService";
+import { orderService } from "@/services/orderService"; // Add import
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from 'react';
 
@@ -103,21 +104,25 @@ const TableTimer = ({ startDate }: { startDate: Date }) => {
 }
 
 export function TableGrid({ onSelectTable }: TableGridProps) {
-    const tables = useLiveQuery(async () => {
-        const allTables = await db.billiardTables.toArray();
-        const occupiedOrderIds = allTables
-            .filter(t => t.currentOrderId)
-            .map(t => t.currentOrderId as number);
-        
-        const orders = await db.orders.where('id').anyOf(occupiedOrderIds).toArray();
-        
-        return allTables.map(table => {
-            const order = orders.find(o => o.id === table.currentOrderId);
-            return {
-                ...table,
-                startTime: order ? order.date : null
-            };
-        });
+    const { data: tables } = useQuery({
+        queryKey: ['tables'],
+        queryFn: tableService.getAll,
+        refetchInterval: 5000
+    });
+
+    const { data: activeOrders } = useQuery({
+        queryKey: ['activeOrders'],
+        queryFn: orderService.getActiveOrders,
+        refetchInterval: 5000
+    });
+
+    // Merge logic
+    const displayTables = tables?.map(table => {
+        const order = activeOrders?.find(o => o.tableId === table.id);
+        return {
+            ...table,
+            startTime: order ? order.date : null
+        };
     });
 
     if (!tables) return null;
@@ -125,7 +130,7 @@ export function TableGrid({ onSelectTable }: TableGridProps) {
     return (
         <div className="p-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {tables.map(table => (
+                {displayTables?.map(table => (
                     <div 
                         key={table.id}
                         onClick={() => onSelectTable(table.id!)}

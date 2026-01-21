@@ -1,5 +1,3 @@
-import Dexie, { type Table } from 'dexie';
-
 export interface Product {
     id?: number;
     name: string;
@@ -28,12 +26,12 @@ export interface Order {
     status: 'pending' | 'completed' | 'cancelled';
     tableId?: number;
     customerId?: number;
-    note?: string | string[]; // Backwards compatibility for string, transitioning to string[]
+    note?: string | string[];
     discount?: number;
     customTableFee?: number;
-    customItemsTotal?: number; // Override for calculated product total
-    customDuration?: number; // Override for duration in minutes
-    pricePerHour?: number; // Snapshot or Override of table price for this specific order
+    customItemsTotal?: number;
+    customDuration?: number;
+    pricePerHour?: number;
 }
 
 export interface Customer {
@@ -46,7 +44,7 @@ export interface Customer {
 export interface User {
     id?: number;
     username: string;
-    password: string; // In a real app, hash this!
+    password: string;
     fullName: string;
     role: 'admin' | 'staff';
 }
@@ -59,26 +57,3 @@ export interface Coupon {
     description?: string;
     isActive: boolean;
 }
-
-export class POSDatabase extends Dexie {
-    products!: Table<Product>;
-    orders!: Table<Order>;
-    customers!: Table<Customer>;
-    users!: Table<User>;
-    billiardTables!: Table<BilliardTable>;
-    coupons!: Table<Coupon>;
-
-    constructor() {
-        super('POS365Database');
-        this.version(1).stores({
-            products: '++id, barcode, name, category',
-            orders: '++id, date, paymentMethod, status, tableId',
-            customers: '++id, phone, name',
-            users: '++id, username, role',
-            billiardTables: '++id, name, status',
-            coupons: '++id, code, isActive'
-        });
-    }
-}
-
-export const db = new POSDatabase();

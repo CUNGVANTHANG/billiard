@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type Product } from "@/lib/db";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type Product } from '@/types';
+import { productService } from "@/services/productService";
 import { ProductForm } from "./ProductForm";
 import {
   AlertDialog,
@@ -28,21 +29,54 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
-  const products = useLiveQuery(
-    async () => {
-        let collection = db.products.toCollection();
-        if (selectedCategory) {
-            collection = db.products.where('category').equals(selectedCategory);
-        }
-        let result = await collection.toArray();
-        if (searchTerm) {
-            const lowerString = searchTerm.toLowerCase();
-            result = result.filter(p => p.name.toLowerCase().includes(lowerString) || p.barcode.includes(searchTerm));
-        }
-        return result;
-    },
-    [searchTerm, selectedCategory]
-  );
+  const queryClient = useQueryClient();
+
+  const { data: allProducts, isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: productService.getAll
+  });
+
+  const products = allProducts?.filter(p => {
+      let match = true;
+      if (selectedCategory) {
+          match = p.category === selectedCategory;
+      }
+      if (searchTerm && match) {
+          const lowerString = searchTerm.toLowerCase();
+          match = p.name.toLowerCase().includes(lowerString) || p.barcode.includes(searchTerm);
+      }
+      return match;
+  });
+
+  const createMutation = useMutation({
+      mutationFn: productService.create,
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          setIsFormOpen(false);
+          toast.success("Thêm sản phẩm thành công");
+      },
+      onError: () => toast.error("Lỗi khi thêm sản phẩm")
+  });
+
+  const updateMutation = useMutation({
+      mutationFn: ({ id, data }: { id: number; data: Partial<Product> }) => productService.update(id, data),
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          setIsFormOpen(false);
+          toast.success("Cập nhật sản phẩm thành công");
+      },
+      onError: () => toast.error("Lỗi khi cập nhật sản phẩm")
+  });
+
+  const deleteMutation = useMutation({
+      mutationFn: productService.delete,
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          setDeletingProduct(null);
+          toast.success("Xóa sản phẩm thành công");
+      },
+      onError: () => toast.error("Lỗi khi xóa sản phẩm")
+  });
 
   const handleAdd = () => {
       setEditingProduct(null);
@@ -54,23 +88,17 @@ export default function ProductsPage() {
       setIsFormOpen(true);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
       if (deletingProduct?.id) {
-          try {
-              await db.products.delete(deletingProduct.id);
-              toast.success("Xóa sản phẩm thành công");
-              setDeletingProduct(null);
-          } catch (error) {
-              toast.error("Có lỗi xảy ra khi xóa sản phẩm");
-          }
+          deleteMutation.mutate(deletingProduct.id);
       }
   };
 
-  const handleSave = async (data: Product) => {
-      if (data.id) {
-          await db.products.update(data.id, data);
-      } else {
-          await db.products.add(data);
+  const handleSave = (data: Product) => {
+      if (data.id) { // Update
+          updateMutation.mutate({ id: data.id, data });
+      } else { // Create
+          createMutation.mutate(data);
       }
   };
 

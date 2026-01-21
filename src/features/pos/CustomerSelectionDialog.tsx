@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { db, type Customer } from "@/lib/db";
+import { type Customer } from "@/types";
+import { customerService } from "@/services/customerService";
 import { Search, UserPlus, User } from "lucide-react";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 
@@ -34,7 +35,7 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
             setIsSearching(true);
             try {
                 // Simple search by phone
-                const customer = await db.customers.where('phone').equals(phone).first();
+                const customer = await customerService.searchByPhone(phone);
                 setFoundCustomer(customer || null);
             } finally {
                 setIsSearching(false);
@@ -53,12 +54,11 @@ export function CustomerSelectionDialog({ open, onOpenChange, onSelect }: Custom
       if (!name || !phone) return;
       
       try {
-          const id = await db.customers.add({
+          const newCustomer = await customerService.create({
               name,
               phone,
               points: 0
           });
-          const newCustomer = { id: id as number, name, phone, points: 0 };
           onSelect(newCustomer);
           onOpenChange(false);
       } catch (error) {

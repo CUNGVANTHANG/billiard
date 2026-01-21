@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type Order } from "@/lib/db";
+import { useQuery } from "@tanstack/react-query";
+import { type Order } from "@/types";
+import { orderService } from "@/services/orderService";
+import { tableService } from "@/services/tableService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,15 +38,15 @@ export default function OrdersPage() {
     const [dateTo, setDateTo] = useState("");
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-    const orders = useLiveQuery(
-        () => db.orders.orderBy('date').reverse().toArray(),
-        []
-    );
+    const { data: orders } = useQuery({
+        queryKey: ['orders'],
+        queryFn: orderService.getAll
+    });
 
-    const tables = useLiveQuery(
-        () => db.billiardTables.toArray(),
-        []
-    );
+    const { data: tables } = useQuery({
+        queryKey: ['tables'],
+        queryFn: tableService.getAll
+    });
 
     const filteredOrders = useMemo(() => {
         if (!orders) return [];
